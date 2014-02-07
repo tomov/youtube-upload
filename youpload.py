@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import argparse
 import httplib
 import httplib2
 import os
@@ -12,13 +13,13 @@ from apiclient.errors import HttpError
 from apiclient.http import MediaFileUpload
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
-from oauth2client.tools import argparser, run_flow
+from oauth2client.tools import run_flow
 
-# Crawlers
 
-VIDEO_DIR = "/Users/tomov90/Movies"
 VIDEO_EXTS = ['3gp', 'avi', 'mov', 'mpg', 'mpeg', 'mp4', 'flv', 'mts', 'wmv', 'm4v']
 VIDEOS_PER_PAGE = 50
+
+MOVIES_DIRECTORY_MAC = 'Movies'
 
 # playlists that are not backed up folders... like normal playlists
 NON_BACKUP_PLAYLISTS = ['Classics']
@@ -29,23 +30,61 @@ playlist_fails = []
 playlists = dict()  # relative path -> id
 uploaded_videos = dict()  # relative path -> id
 
-def get_playlist(youtube, fullpath):
-    p = fullpath.split('/')
-    playlist_path = '/'.join(p[:-1])
-    if not playlist_path in playlists:
-        if len(p) == 1:
-            playlists[playlist_path] = None
+
+""" Helpers
+"""
+
+def str2key( ss ):
+    if not isinstance(ss, unicode):
+        s = ss.decode('utf-8')
+    else:
+        s = ss
+    return s.encode("utf-8")
+
+def query_yes_no(question, default="yes"):
+    """Ask a yes/no question via raw_input() and return their answer.
+
+    "question" is a string that is presented to the user.
+    "default" is the presumed answer if the user just hits <Enter>.
+        It must be "yes" (the default), "no" or None (meaning
+        an answer is required of the user).
+
+    The "answer" return value is one of "yes" or "no".
+    """
+    valid = {"yes":True,   "y":True,  "ye":True,
+             "no":False,     "n":False}
+    if default == None:
+        prompt = " [y/n] "
+    elif default == "yes":
+        prompt = " [Y/n] "
+    elif default == "no":
+        prompt = " [y/N] "
+    else:
+        raise ValueError("invalid default answer: '%s'" % default)
+
+    while True:
+        sys.stdout.write(question + prompt)
+        choice = raw_input().lower()
+        if default is not None and choice == '':
+            return valid[default]
+        elif choice in valid:
+            return valid[choice]
         else:
-            playlist_id = create_playlist(youtube, playlist_path, playlist_path)
-            playlists[playlist_path] = playlist_id
+            sys.stdout.write("Please respond with 'yes' or 'no' "\
+                             "(or 'y' or 'n').\n")
 
-        print 'Playist ' + str(playlist_path)
-    return playlists[playlist_path]
+"""
+    Crawler
+"""
 
+def prompt(videos_dir, username, realname):
+    print "\n---------------------------------------------------------------------------\n"
+    print "    This script will examine all files and directories in: " + videos_dir + ""
+    print "    and upload them to YouTube account: " + username + " (" + realname + ")"
+    print "\n---------------------------------------------------------------------------\n"
+    return query_yes_no("Are you sure you want to continue?")
 
-
-def crawl(youtube):
-    start_path = VIDEO_DIR
+def crawl(youtube, start_path):
     foo = os.walk(start_path)
     for data in foo:
         (dirpath, dirnames, filenames) = data
@@ -65,65 +104,9 @@ def crawl(youtube):
     print 'FAILED PLAYLISTS = ' + str(playlist_fails)
 
 
-
-# API Calls
-
-def get_playlists(youtube):
-    print 'Getting all playlists and videos....'
-    pageToken = None
-    while True:
-        try:
-            playlists_response = youtube.playlists().list(
-             part="id,snippet",
-             mine=True,
-             maxResults=VIDEOS_PER_PAGE,
-             pageToken=pageToken
-            ).execute()
-            for playlist in playlists_response['items']:
-                title = playlist['snippet']['title']
-                playlist_path = playlist['snippet']['description']
-                playlist_id = playlist['id']
-                if title in NON_BACKUP_PLAYLISTS:
-                    continue
-                playlists[playlist_path] = playlist_id
-                print 'Existing playlist ' + playlist_path + ' ---> ' + str(playlist_id)
-            if not 'nextPageToken' in playlists_response:
-                break
-            pageToken = playlists_response['nextPageToken']
-        except:
-            print(str(sys.exc_info()))
-            break
-
-def get_videos(youtube, playlists):
-    for p_path in playlists:
-        p_id = playlists[p_path]
-        get_videos_in_playlist(youtube, p_id)
-
-def get_videos_in_playlist(youtube, playlist_id):
-    print 'Getting videos in playlist ' + str(playlist_id)
-    pageToken = None
-    while True:
-        try:
-            playlistitems_list_request = youtube.playlistItems().list(
-                playlistId=playlist_id,
-                part="id,snippet",
-                maxResults=VIDEOS_PER_PAGE,
-                pageToken=pageToken
-            )
-            playlistitems_list_response = playlistitems_list_request.execute()
-            for playlist_item in playlistitems_list_response["items"]:
-                title = playlist_item["snippet"]["title"]
-                video_path = playlist_item["snippet"]["description"]
-                video_id = playlist_item["snippet"]["resourceId"]["videoId"]
-                uploaded_videos[video_path] = video_id
-                print 'Uploaded video ' + video_path + ' --> ' + str(video_id)
-            if not 'nextPageToken' in playlistitems_list_response:
-                break
-            pageToken = playlistitems_list_response['nextPageToken']
-        except:
-            print(str(sys.exc_info()))
-            break
-
+"""
+      API Calls
+"""
 
 # Explicitly tell the underlying HTTP transport library not to retry, since
 # we are handling retry logic ourselves.
@@ -181,7 +164,16 @@ https://developers.google.com/api-client-library/python/guide/aaa_client_secrets
 VALID_PRIVACY_STATUSES = ("public", "private", "unlisted")
 
 
-def get_authenticated_service(args):
+class RunFlowDefaultArgs:
+  # hack b/c the argparser used by google's library messes up our argparser
+  auth_host_name = 'localhost'
+  noauth_local_webserver = False
+  auth_host_port = [8080, 8090]
+  logging_level = 'ERROR'
+
+
+def get_authenticated_service():
+  args = RunFlowDefaultArgs()
   flow = flow_from_clientsecrets(CLIENT_SECRETS_FILE,
     scope=YOUTUBE_SCOPE,
     message=MISSING_CLIENT_SECRETS_MESSAGE)
@@ -194,6 +186,90 @@ def get_authenticated_service(args):
 
   return build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
     http=credentials.authorize(httplib2.Http()))
+
+
+def getUserInfo(youtube):
+  user_id = None
+  username = None
+  try:
+    res = youtube.channels().list(part="id,snippet", mine=True).execute()
+    user_id = str(res['items'][0]['id'])
+    username = res['items'][0]['snippet']['title']
+  except:
+    print(str(sys.exc_info()))
+    sys.exit()
+  return [user_id, username]
+
+
+def get_playlist(youtube, fullpath):
+    p = fullpath.split('/')
+    playlist_path = '/'.join(p[:-1])
+    if not playlist_path in playlists:
+        if len(p) == 1:
+            playlists[playlist_path] = None
+        else:
+            playlist_id = create_playlist(youtube, playlist_path, playlist_path)
+            playlists[playlist_path] = playlist_id
+
+        print 'Playist ' + str(playlist_path)
+    return playlists[playlist_path]
+
+
+def get_playlists(youtube):
+    print 'Getting all playlists and videos....'
+    pageToken = None
+    while True:
+        try:
+            playlists_response = youtube.playlists().list(
+             part="id,snippet",
+             mine=True,
+             maxResults=VIDEOS_PER_PAGE,
+             pageToken=pageToken
+            ).execute()
+            for playlist in playlists_response['items']:
+                title = playlist['snippet']['title']
+                playlist_path = playlist['snippet']['description']
+                playlist_id = playlist['id']
+                if title in NON_BACKUP_PLAYLISTS:
+                    continue
+                playlists[playlist_path] = playlist_id
+                print 'Existing playlist ' + playlist_path + ' ---> ' + str(playlist_id)
+            if not 'nextPageToken' in playlists_response:
+                break
+            pageToken = playlists_response['nextPageToken']
+        except:
+            print(str(sys.exc_info()))
+            break
+
+def get_videos_in_playlist(youtube, playlist_id):
+    print 'Getting videos in playlist ' + str(playlist_id)
+    pageToken = None
+    while True:
+        try:
+            playlistitems_list_request = youtube.playlistItems().list(
+                playlistId=playlist_id,
+                part="id,snippet",
+                maxResults=VIDEOS_PER_PAGE,
+                pageToken=pageToken
+            )
+            playlistitems_list_response = playlistitems_list_request.execute()
+            for playlist_item in playlistitems_list_response["items"]:
+                title = playlist_item["snippet"]["title"]
+                video_path = playlist_item["snippet"]["description"]
+                video_id = playlist_item["snippet"]["resourceId"]["videoId"]
+                uploaded_videos[video_path] = video_id
+                print 'Uploaded video ' + video_path + ' --> ' + str(video_id)
+            if not 'nextPageToken' in playlistitems_list_response:
+                break
+            pageToken = playlistitems_list_response['nextPageToken']
+        except:
+            print(str(sys.exc_info()))
+            break
+
+def get_videos(youtube, playlists):
+    for p_path in playlists:
+        p_id = playlists[p_path]
+        get_videos_in_playlist(youtube, p_id)
 
 def upload_video(youtube, filepath, title, description, keywords = None, category = 22, privacyStatus = VALID_PRIVACY_STATUSES[1]):
   print 'Adding video ' + filepath + ' as ' + title
@@ -246,6 +322,7 @@ def upload_video(youtube, filepath, title, description, keywords = None, categor
       video_fails.append(description)
       print '              Epic Fail........'  
       return None
+
 
 def create_playlist(youtube, playlist_name, playlist_description):
     print 'Creating playlist ' + playlist_name
@@ -325,20 +402,42 @@ def resumable_upload(insert_request):
       print "Sleeping %f seconds and then retrying..." % sleep_seconds
       time.sleep(sleep_seconds)
 
+"""
+    Main
+"""
 
 if __name__ == '__main__':
-  youtube = get_authenticated_service(argparser.parse_args())
+    parser = argparse.ArgumentParser(description='Upload directories to YouTube.')
+    parser.add_argument('--dir', action='store', help='Directory with videos to upload')
+    parser.add_argument('--no-prompt', action='store_true', help="Avoid prompt. Useful for automation.")
+    args = parser.parse_args()
 
-  get_playlists(youtube)
-  get_videos(youtube, playlists)
+    if args.dir:
+        videos_dir = args.dir
+    else:
+        videos_dir = os.path.join(os.path.expanduser('~'), MOVIES_DIRECTORY_MAC)
+
+    youtube = get_authenticated_service()
+    [user_id, username] = getUserInfo(youtube)
+
+    if args.no_prompt or prompt(videos_dir, user_id, username):
+      print 'YES'
+    else:
+      print 'NO'
+
+"""
+    flick = Uploadr(args)
+    if args.no-prompt or flick.prompt():
+        print '\n' + flick.session_info
+        flick.getHistory()
+        flick.crawl()
+        flick.printStats()
+        flick.closeHistoryFiles()
+    else:
+        print "\nExiting..."
+"""
+
+  #get_playlists(youtube)
+  #get_videos(youtube, playlists)
   
-  crawl(youtube)
-
-
-  #playlist_id = create_playlist(youtube, "lolz IT WORKS", "blabla/adsf")
-  #try:
-  #  filepath = "/Users/tomov90/Movies/Pleven/Ironman2.3gp"
-  #  video_id = upload_video(youtube, filepath, "FTWER video", "asdf/asdf/asdf/")
-  #except HttpError, e:
-  #  print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
-  #add_to_playlist(youtube, video_id, playlist_id)
+  #crawl(youtube, videos_dir)
