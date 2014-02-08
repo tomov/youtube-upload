@@ -1,4 +1,33 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/python
+
+"""
+   youpload.py
+
+   Upload videos placed within a directory to your YouTube account.
+
+   Requires:
+       TODO google client
+       YouTube account http://youtube.com
+
+   Usage:
+
+   Put the client_secrets.json file in the videos directory you are uploading.
+   Run the script and pass the videos directory as a command-line parameter.
+
+   The best way to use this is to just fire this up in the background and forget about it.
+   If you find you have CPU/Process limits, then setup a cron job.
+
+   cron entry (runs at the top of every hour)
+   0  *  *   *  * /full/path/to/youpload.py > /dev/null 2>&1
+
+   Februrary 2014
+   Momchil Tomov     about.me/tomov
+
+   You may use this code however you see fit in any form whatsoever.
+
+"""
+
 
 import argparse
 import httplib
@@ -59,7 +88,7 @@ RETRIABLE_STATUS_CODES = [500, 502, 503, 504]
 # For more information about the client_secrets.json file format, see:
 #   https://developers.google.com/api-client-library/python/guide/aaa_client_secrets
 CLIENT_SECRETS_FILE = "client_secrets.json"
-CLIENT_ACCESS_TOKEN_FILE = "youploader_oauth2.json"
+CLIENT_ACCESS_TOKEN_FILE = ".youploader.oauth2.json"
 
 # This OAuth 2.0 access scope allows an application to upload files to the
 # authenticated user's YouTube channel, but doesn't allow other types of access.

@@ -58,17 +58,17 @@ You will be forwarded to a YouTube confirmation page in your browser. Click ``Ac
 Step 3. Check if everything is fine
 -------------------
 
-Once the script has finished, go to your Flickr account photo stream and make sure everything is there. Check the photo count at the top of the photo stream and make sure it looks right. I also recommend checking the sets and collections in the `organizer <http://www.flickr.com/photos/organize/>`_ to make sure the photos are neatly organized like they were in your photos directory.
+Once the script has finished, go to your YouTube account `video manager <http://www.youtube.com/my_videos>`_ and make sure everything is there. Check the Uploads count at the top of the page and make sure it looks right. I also recommend checking the playlists by clicking "Playlists" in the Video Manager left sidebar to make sure the videos are organized according to the directory layout.
 
 
 Step 4. Re-running the script
 -------------------
 
-To back up the same folder to the same Flickr account, simply run::
+To back up the same folder to the same YouTube account, simply run::
 
-	python uploadr.py --dir=[photos directory]
+	python youpload.py --dir=[videos directory]
 
-And the upload should start immediately. You won't have to re-enter your API key and secret since the app saves them in your photos directory. The app also saves a history of all previously uploaded photos and unless you move stuff around or rename your files or directories, it will avoid uploading duplicate photos or creating duplicate sets and collections.
+And the upload should start immediately. The app also saves a history of all previously uploaded videos and unless you move stuff around or rename your files or directories, it will avoid uploading duplicate videos or creating duplicate playlists.
 
 
 Step 5. Automate the script
@@ -80,11 +80,11 @@ The best part about a command-line script like this is that you can easily autom
 
 This will open the crontab file. Simply add the line::
 
-	0  *  *  *  *  /full/path/to/uploadr.py/uploadr/uploadr.py --dir=[photos directory] --no-prompt > /dev/null 2>&1
+	0  *  *  *  *  /full/path/to/youtube-upload/youpload.py --dir=[videos directory] --no-prompt > /dev/null 2>&1
 
 Which will run the script in the background every hour. For example, for me the line would be::
 
-	0  *  *  *  * /Users/tomov90/Dev/uploadr.py/uploadr/uploadr.py --dir="/Users/tomov90/Downloads/My Photos/" --no-prompt > /dev/null 2>&1
+	0  *  *  *  * /Users/tomov90/Dev/youtube-upload/youpload.py --dir="/Users/tomov90/Downloads/My Videos/" --no-prompt > /dev/null 2>&1
 
 Alternatively, you can use the Mac Automator by following `this <http://arstechnica.com/apple/2011/03/howto-build-mac-os-x-services-with-automator-and-shell-scripting/>`_ or `this <http://lifehacker.com/5668648/automate-just-about-anything-on-your-mac-no-coding-required>`_ tutorial.
 
@@ -92,34 +92,31 @@ Alternatively, you can use the Mac Automator by following `this <http://arstechn
 Advanced
 ===================
 
-The script works with relative paths, so if you move your photos directory to a different location or even if you upload it from a different computer, it should still work. Those relative paths are stored in the descriptions of the photos, sets, and collections in your Flickr account, so please avoid changing them. The script also never deletes uploaded photos.
+The script works with relative paths, so if you move your videos directory to a different location or even if you upload it from a different computer, it should still work. Those relative paths are stored in the descriptions of the videos and playlists in your YouTube account, so please avoid changing them. The script also never deletes uploaded videos.
 
 
 Files
 -------------------
 
-You will notice that the script creates a bunch of files with the prefix ``uploadr.*``  in your photos directory. Some of them will be hidden, namely::
+You will notice that the script creates a bunch of files with the prefix ``youploader.*``  in your photos directory. One of them will be hidden, namely::
 
-	.uploadr.flickrToken
-	.uploadr.apiKey
-	.uploadr.apiSecret
+	.youploader.oauth2.json
 
-Those contain your Flickr account access information so you don't have to enter it every time. However, this also means that anyone who has access to those files can access your precious photos, so make sure to avoid sending them to random people. If you ever delete them, you will have to pass the API key and secret as command-line parameters as discussed in Step 2.
+This file contains your YouTube account access information so you don't have to enter it every time. However, this also means that anyone who has access to this file can access your precious videos, so make sure to avoid sending it to random people. If you ever delete it, you will have to re-approve the script for your account.
 
-In addition, the script saves a history of all uploaded photos, sets, and collections in these files::
+In addition, the script saves a history of all uploaded videos and playlists in these files::
 
-	uploadr.uploaded_images.db
-	uploadr.created_sets.db
-	uploadr.created_collections.db
+	youploader.uploaded_videos.db
+	youploader.created_playlists.db
 
-This helps the script avoid duplicate uploads. If you delete them, the script will still avoid duplicate uploads by first fetching a list of all images, sets, and collections from the Flickr account. In fact, if for some reason you upload photos to the same account from different directories, it might make sense to delete those files and let the script "refresh" them with the latest data in the Flickr account.
+This helps the script avoid duplicate uploads. If you delete them, the script will still avoid duplicate uploads by first fetching a list of all videos and playlists from the YouTube account. In fact, if for some reason you upload videos to the same account from different directories, it might make sense to delete those files and let the script "refresh" them with the latest data in the YouTube account.
 
 Finally, the script creates a log of failed uploads and ignored files::
 
-	uploadr.failed_uploads.log
-	uploadr.ignored_files.log
+	youploader.failed_uploads.log
+	youploader.ignored_files.log
 
-This is for debugging purposes and to make sure none of your important files were ignored or failed to upload for some reason.
+This is for debugging purposes and to make sure none of your important files were ignored or failed to upload for some reason. Feel free to remove them.
 
 
 Future work
@@ -127,25 +124,24 @@ Future work
 
 The script is far from perfect and there is plenty of room for improvement. Feel free to fork, change, improve, and distribute as you see fit! Some suggestions for improvements:
 
-1. Windows and Linux compatibility
+1. Splitting videos
+
+Unfortunatley YouTube does not allow uploading videos longer than 10 minutes. Currently the script will try and fail to upload those so you will simply have to split them manually. It would be great if someone adds a video splitting tool that automatically does that before attempting to upload.
+
+2. Windows and Linux compatibility
 
 It would be awesome if someone tried to see if this works on other platforms. It will surely need some help to get it going under Windows since I've hardcoded a bunch of forward slashes here and there (sorry about that).
 
-2. ``--dry-run`` option
+3. ``--dry-run`` option
 
 It would be great to have the option to run the script without actually uploading or changing anything, just to see what will happen (which files will be uploaded, how many of them, etc)
 
-3. Pause/resume script
+4. Pause/resume script
 
 Currently you can interrupt the script with ``Cmd+C`` and restart it. It would be nice if you could only pause it.
-
-4. Subcollections
-
-Currently the Flickr collections API is unofficial and I could not figure out how to create a collection within a collection. So if you have lots of nested directories, e.g. ``/path/to/some/album/``, the script will create collections ``/path``, ``/path/to``, and ``/path/to/some``, and a set ``album`` nested inside the last collection. Ideally, once Flickr releases their collections API, we would like instead to create a collection ``path`` and inside it a collection ``to`` and inside it a collection ``some`` and finally inside it a set ``album``.
 
 
 License
 ==============
 
-Uploadr.py consists of code by Cameron Mallory, Martin Kleppmann, Aaron Swartz and
-others. See ``COPYRIGHT`` for details. Latest modifications (integration with the sets and collections API) by Momchil Tomov.
+Youpload.py consists of code by Momchil Tomov and from the Google API sample code page. Feel free to modify, distribute, and use as you see fit!
