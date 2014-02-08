@@ -30,6 +30,12 @@ Mac OS X 10.8 comes with Python preinstalled. To verfiy that, open a terminal an
 
 To see if you have Git installed, open a terminal and type ``git --version``. If you don’t have it, you can get the latest version from `here <https://code.google.com/p/git-osx-installer/downloads/list>`_.
 
+3. Google Python API Client Library
+
+Run ``pip install google-api-python-client``. If you don't have ``pip``, you will first have to run ``sudo easy_install pip``.
+
+Alternatively, you can manuall download and install the libraries from `here <https://code.google.com/p/google-api-python-client/downloads/list>`_ (it might help to read the Google API Python `getting started <https://developers.google.com/api-client-library/python/start/get_started>`_ docs first).
+
 Step 1. Download the script
 ---------------
 
@@ -46,11 +52,11 @@ Step 2. Run the script
 
 Make sure to have your YouTube credentials JSON file saved in your videos directory (if you don't, should issue a new set of credentials by following the instructions `here <https://developers.google.com/youtube/registering_an_application>`_). Then run the script::
 
-	python uploadr.py --dir=[videos directory]
+	python youpload.py --dir=[videos directory]
 
 Here is what this would look like for an example directory::
 
-	python uploadr.py --dir="/Users/tomov90/Downloads/My Videos/"
+	python youpload.py --dir="/Users/tomov90/Downloads/My Videos/"
 
 You will be forwarded to a YouTube confirmation page in your browser. Click ``Accept`` and go back to the terminal. You will get another prompt asking you if you are sure you want to continue. Type ``Y`` and let python do the rest of the work! Note that for this example directory, your JSON credentials file would have to be "/Users/tomov90/Downloads/My Videos/client_secrets.json".
 
@@ -98,7 +104,7 @@ The script works with relative paths, so if you move your videos directory to a 
 Files
 -------------------
 
-You will notice that the script creates a bunch of files with the prefix ``youploader.*``  in your photos directory. One of them will be hidden, namely::
+You will notice that the script creates a bunch of files with the prefix ``youploader.*``  in your videos directory. One of them will be hidden, namely::
 
 	.youploader.oauth2.json
 
