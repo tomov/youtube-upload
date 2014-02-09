@@ -34,7 +34,7 @@ To see if you have Git installed, open a terminal and type ``git --version``. If
 
 Run ``pip install google-api-python-client``. If you don't have ``pip``, you will first have to run ``sudo easy_install pip``.
 
-Alternatively, you can manuall download and install the libraries from `here <https://code.google.com/p/google-api-python-client/downloads/list>`_ (it might help to read the Google API Python `getting started <https://developers.google.com/api-client-library/python/start/get_started>`_ docs first).
+Alternatively, you can manually download and install the libraries from `here <https://code.google.com/p/google-api-python-client/downloads/list>`_ (it might help to read the Google API Python `getting started <https://developers.google.com/api-client-library/python/start/get_started>`_ docs first).
 
 Step 1. Download the script
 ---------------
@@ -58,13 +58,15 @@ Here is what this would look like for an example directory::
 
 	python youpload.py --dir="/Users/tomov90/Downloads/My Videos/"
 
-You will be forwarded to a YouTube confirmation page in your browser. Click ``Accept`` and go back to the terminal. You will get another prompt asking you if you are sure you want to continue. Type ``Y`` and let python do the rest of the work! Note that for this example directory, your JSON credentials file would have to be "/Users/tomov90/Downloads/My Videos/client_secrets.json".
+You will be forwarded to a YouTube confirmation page in your browser. Click ``Accept`` and go back to the terminal. You will get another prompt asking you if you are sure you want to continue. Type ``Y`` and let python do the rest of the work! Note that for this example directory, your JSON credentials file would have to be ``/Users/tomov90/Downloads/My Videos/client_secrets.json``.
 
 
 Step 3. Check if everything is fine
 -------------------
 
-Once the script has finished, go to your YouTube account `video manager <http://www.youtube.com/my_videos>`_ and make sure everything is there. Check the Uploads count at the top of the page and make sure it looks right. I also recommend checking the playlists by clicking "Playlists" in the Video Manager left sidebar to make sure the videos are organized according to the directory layout.
+Even as the script is running, you can watch videos being added if you go to your YouTube account `video manager <http://www.youtube.com/my_videos>`_. Once the script has finished, go there to make sure everything has been successfully uploaded. Check the Uploads count at the top of the page and make sure it looks right. I also recommend checking the playlists by clicking ``Playlists`` in the Video Manager left sidebar to make sure the videos are organized according to the directory layout.
+
+Also make sure all videos are private. In the `video manager <http://www.youtube.com/my_videos>`_, next to each video there should be a little blue lock that says ``Private`` when you hover over it.
 
 
 Step 4. Re-running the script
@@ -72,7 +74,7 @@ Step 4. Re-running the script
 
 To back up the same folder to the same YouTube account, simply run::
 
-	python youpload.py --dir=[videos directory]
+	python youpload.py --dir=[videos directory] --no-prompt
 
 And the upload should start immediately. The app also saves a history of all previously uploaded videos and unless you move stuff around or rename your files or directories, it will avoid uploading duplicate videos or creating duplicate playlists.
 
@@ -145,6 +147,10 @@ It would be great to have the option to run the script without actually uploadin
 4. Pause/resume script
 
 Currently you can interrupt the script with ``Cmd+C`` and restart it. It would be nice if you could only pause it.
+
+5. Intelligent deduplication
+
+This is kind of advanced, but it would be awesome if the script can detect if you renamed a file or a directory and instead of reuploading the whole thing over again, it would simply rename the corresponding videos and playlists in the YouTube account. This might require some sort of hashing but would make the script a lot more robust.
 
 
 License
